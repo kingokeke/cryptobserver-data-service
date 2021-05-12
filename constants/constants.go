@@ -12,6 +12,11 @@ const (
 	CRON_EVERY_FIFTEEN_MINUTES = "*/15 * * * *"
 	CRON_EVERY_THIRTY_MINUTES = "*/30 * * * *"
 	CRON_EVERY_HOUR = "0 * * * *"
+	ONE_SECOND = 1
+	ONE_MINUTE = ONE_SECOND * 60
+	ONE_HOUR = ONE_MINUTE * 60
+	ONE_DAY = ONE_HOUR * 24
+	ONE_MONTH = ONE_DAY * 30
 )
 // MongoUrl = "mongodb://108.166.218.71:27007"
 // MongoUrl = "mongodb://localhost:27018"
