@@ -30,7 +30,7 @@ func main() {
 		Keys: bson.M{
 			"timestamp": 1,
 		},
-		Options: options.Index().SetExpireAfterSeconds(18000000),
+		Options: options.Index().SetExpireAfterSeconds(constants.ONE_MONTH * 7),
 	}
 
 	_, e = rawStats.Indexes().CreateOne(ctx, mod)
