@@ -23,7 +23,7 @@ func main() {
 	client := mongodbUtil.ConnectToDatabase(&ctx)
 	rawStats := client.Database("cs").Collection("raw-stats")
 
-	_, e := rawStats.InsertOne(ctx, mongodbUtil.PriceStatStruct{})
+	_, e := rawStats.InsertOne(ctx, mongodbUtil.RawPriceDataStruct{})
 	utils.CheckError(e)
 
 	mod := mongo.IndexModel{
@@ -55,7 +55,7 @@ func getPriceInfo(ctx *context.Context, client *mongo.Client, collection *mongo.
 	stats := []interface{}{}
 	for _, stat := range priceStatsFromBinance {
 		if strings.HasSuffix(stat.Symbol, constants.BNB) || strings.HasSuffix(stat.Symbol, constants.BTC) || strings.HasSuffix(stat.Symbol, constants.ETH) || strings.HasSuffix(stat.Symbol, constants.USDT) {
-			item := mongodbUtil.PriceStatStruct{}
+			item := mongodbUtil.RawPriceDataStruct{}
 			var e error
 
 			item.Symbol = stat.Symbol
