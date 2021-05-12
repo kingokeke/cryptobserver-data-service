@@ -1,7 +1,6 @@
 package dotenvUtil
 
 import (
-	"log"
 	"os"
 	"strings"
 
@@ -15,8 +14,6 @@ func GetValue(key string) string {
 	if strings.HasPrefix(os.Getenv("APP_ENV"), "prod") {
 		dotEnvFile = ".env.prod"
 	}
-
-	log.Println("APP_ENV = ", os.Getenv("APP_ENV"))
 
 	e := godotenv.Load(dotEnvFile)
 	utils.CheckError(e)
