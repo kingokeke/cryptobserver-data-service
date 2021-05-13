@@ -1,7 +1,6 @@
 package constants
 
 const (
-	MongoUrl = "mongodb://localhost:27018"
 	PriceStatsUrl = `https://api.binance.com/api/v3/ticker/24hr`
 	BTC = "BTC"
 	ETH = "ETH"
@@ -18,5 +17,3 @@ const (
 	ONE_DAY = ONE_HOUR * 24
 	ONE_MONTH = ONE_DAY * 30
 )
-// MongoUrl = "mongodb://108.166.218.71:27007"
-// MongoUrl = "mongodb://localhost:27018"
