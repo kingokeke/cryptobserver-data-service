@@ -40,14 +40,14 @@ func main() {
 	c.Cron(constants.CRON_EVERY_FIVE_MINUTES).Do(func() {
 		getPriceInfo(&ctx, client, rawStats)
 	})
-
+	
 	c.StartBlocking()
 	
 	utils.LogToGeneral("App Stopped...")
 }
 
 func getPriceInfo(ctx *context.Context, client *mongo.Client, collection *mongo.Collection) {
-	currentTime := time.Now()
+	currentTime := time.Now().Local()
 	bodyBytes := binanceUtil.GetPriceInfoAsByteArray()
 
 	var priceStatsFromBinance binanceUtil.PriceStats
