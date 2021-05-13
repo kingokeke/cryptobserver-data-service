@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +18,7 @@ import (
 )
 
 func main() {
+	utils.LogToGeneral("App Started...")
 	ctx := context.Background()
 	client := mongodbUtil.ConnectToDatabase(&ctx)
 	rawStats := client.Database("cs").Collection("raw-stats")
@@ -38,11 +38,12 @@ func main() {
 
 	c := gocron.NewScheduler(time.UTC)
 	c.Cron(constants.CRON_EVERY_FIVE_MINUTES).Do(func() {
-		log.Println("Fetching Price Stats...")
 		getPriceInfo(&ctx, client, rawStats)
 	})
 
 	c.StartBlocking()
+	
+	utils.LogToGeneral("App Stopped...")
 }
 
 func getPriceInfo(ctx *context.Context, client *mongo.Client, collection *mongo.Collection) {
@@ -73,5 +74,5 @@ func getPriceInfo(ctx *context.Context, client *mongo.Client, collection *mongo.
 
 	_, e := collection.InsertMany(*ctx, stats)
 	utils.CheckError(e)
-	log.Println("Binance data persisted successfully...")
+	utils.LogToGeneral("Successfully persisted raw price data...")
 }

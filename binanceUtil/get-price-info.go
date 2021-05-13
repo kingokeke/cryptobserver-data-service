@@ -11,6 +11,7 @@ import (
 func GetPriceInfoAsByteArray() []byte {
 	response, e := http.Get(constants.PriceStatsUrl)
 	utils.CheckError(e)
+	utils.LogToGeneral("Successfully retrieved price data from exchange...")
 
 	defer response.Body.Close()
 

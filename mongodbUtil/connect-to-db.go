@@ -15,9 +15,11 @@ func ConnectToDatabase(ctx *context.Context) *mongo.Client {
 
 	client, e := mongo.Connect(*ctx, clientOptions)
 	utils.CheckError(e)
+	utils.LogToGeneral("Successfully connected to database...")
 
 	e = client.Ping(*ctx, nil)
 	utils.CheckError(e)
+	utils.LogToGeneral("Successfully pinged database...")
 
 	return client
 }
