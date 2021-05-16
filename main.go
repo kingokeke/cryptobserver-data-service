@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-co-op/gocron"
 	"github.com/kingokeke/go-example-1/binanceUtil"
 	"github.com/kingokeke/go-example-1/constants"
+	"github.com/kingokeke/go-example-1/dotenvUtil"
 	"github.com/kingokeke/go-example-1/mongodbUtil"
 	"github.com/kingokeke/go-example-1/utils"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,35 +21,45 @@ import (
 
 func main() {
 	utils.LogToGeneral("App Started...")
+
 	ctx := context.Background()
 	client := mongodbUtil.ConnectToDatabase(&ctx)
-	rawStats := client.Database("cs").Collection("raw-stats")
+	defer client.Disconnect(ctx)
 
-	_, e := rawStats.InsertOne(ctx, mongodbUtil.RawPriceDataStruct{})
+	db := client.Database(("cs"))
+	timeInSeconds := [5]int32{constants.FIVE_MINUTES, constants.FIFTEEN_MINUTES, constants.ONE_HOUR, constants.FOUR_HOURS, constants.ONE_DAY}
+	timeFrames := [5]string{"m5", "m15", "h1", "h4", "d1"}
+
+	collectionNames, e := db.ListCollectionNames(ctx, bson.D{})
 	utils.CheckError(e)
 
-	mod := mongo.IndexModel{
-		Keys: bson.M{
-			"timestamp": 1,
-		},
-		Options: options.Index().SetExpireAfterSeconds(constants.ONE_MONTH * 7),
+	for i, timeframe := range timeFrames {
+		collectionExists := false
+		collectionName := "raw-data-" + timeframe
+		dbCollection := db.Collection(collectionName)
+		collectionModel := getModel(timeInSeconds[i])
+
+		for _, name := range collectionNames {
+			if name == collectionName {
+				collectionExists = true
+			}
+		}
+
+		if collectionExists == false {
+			createTTLIndexedTablesInDB(&ctx, dbCollection, &collectionModel)
+		}
 	}
-
-	_, e = rawStats.Indexes().CreateOne(ctx, mod)
-	utils.CheckError(e)
 
 	c := gocron.NewScheduler(time.UTC)
 	c.Cron(constants.CRON_EVERY_FIVE_MINUTES).Do(func() {
-		getPriceInfo(&ctx, client, rawStats)
+		getPriceInfo(&ctx, client, db)
 	})
 	
 	c.StartBlocking()
-	
-	utils.LogToGeneral("App Stopped...")
-}
+	}
 
-func getPriceInfo(ctx *context.Context, client *mongo.Client, collection *mongo.Collection) {
-	currentTime := time.Now().Local()
+func getPriceInfo(ctx *context.Context, client *mongo.Client, database *mongo.Database) {
+	currentTime := time.Now().UTC()
 	bodyBytes := binanceUtil.GetPriceInfoAsByteArray()
 
 	var priceStatsFromBinance binanceUtil.PriceStats
@@ -72,7 +84,48 @@ func getPriceInfo(ctx *context.Context, client *mongo.Client, collection *mongo.
 		}
 	}
 
-	_, e := collection.InsertMany(*ctx, stats)
+	_, e := database.Collection("raw-data-m5").InsertMany(*ctx, stats)
 	utils.CheckError(e)
+	
+	if currentTime.Minute() == 0 || currentTime.Minute() % 15 == 0 {
+		_, e := database.Collection("raw-data-m15").InsertMany(*ctx, stats)
+		utils.CheckError(e)
+	}
+
+	if currentTime.Minute() == 0 {
+		_, e := database.Collection("raw-data-h1").InsertMany(*ctx, stats)
+		utils.CheckError(e)
+	}
+
+	if (currentTime.Hour() == 0 || currentTime.Hour() % 4 == 0) && currentTime.Minute() == 0 {
+		_, e := database.Collection("raw-data-h4").InsertMany(*ctx, stats)
+		utils.CheckError(e)
+	}
+
+	if currentTime.Hour() == 0 && currentTime.Minute() == 0 {
+		_, e := database.Collection("raw-data-d1").InsertMany(*ctx, stats)
+		utils.CheckError(e)
+	}
+
+	_, e = http.Get(dotenvUtil.GetValue("MAIN_SERVICE_URL"))
+	if e != nil {}
+
 	utils.LogToGeneral("Successfully persisted raw price data...")
+}
+
+func getModel(numberOfSeconds int32) mongo.IndexModel {
+	return mongo.IndexModel{
+		Keys: bson.M{
+			"timestamp": 1,
+		},
+		Options: options.Index().SetExpireAfterSeconds(numberOfSeconds * 300),
+	}
+}
+
+func createTTLIndexedTablesInDB(appContext *context.Context, collectionName *mongo.Collection, collectionModel *mongo.IndexModel) {
+		_, e := collectionName.InsertOne(*appContext, mongodbUtil.RawPriceDataStruct{})
+	utils.CheckError(e)
+
+	_, e = collectionName.Indexes().CreateOne(*appContext, *collectionModel)
+	utils.CheckError(e)
 }
